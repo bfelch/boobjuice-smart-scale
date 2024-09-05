@@ -1,0 +1,11 @@
+LOAD CELL connections to HX711
+- Red:   E+
+- Black: E-
+- Green: A-
+- White: A+
+
+HX711 connections to RASPI
+- VCC: Pin  2 (5v)
+- GND: Pin  6 (GND)
+- DT:  Pin 29 (GPIO 5)
+- SCK: Pin 31 (GPIO 6)
