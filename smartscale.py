@@ -29,32 +29,70 @@ PI_REV = config['display'].getint('pi_rev')
 I2C_ADDR = int(config['display'].get('i2c_addr'), 16)
 BACKLIGHT = config['display'].getboolean('backlight')
 
-def confirm_record(grams, minutes):
-    # change to confirmation screen
-    # 'Confirm? Y/N Xmin Yg Zml'
-    # wait for confirm/cancel input
-    # if cancel, return
-    # if confirm, record(grams, minutes)
-    pass
+LONG_PRESS_DURATION = config['settings'].getint('long_press_duration')
 
-def record(grams, minutes):
+def setup_default_button_actions():
+    GPIO.remove_event_detect(CONFIRM_PIN)
+    GPIO.remove_event_detect(CANCEL_PIN)
+
+    GPIO.add_event_detect(CONFIRM_PIN, GPIO.RISING, callback=record, bouncetime=300)
+    GPIO.add_event_detect(CANCEL_PIN, GPIO.BOTH, callback=tare_shutdown, bouncetime=100)
+
+    global confirming
+    confirming = False
+
+def record(channel):
+    global confirming
+    confirming = True
+
+    GPIO.remove_event_detect(CONFIRM_PIN)
+    GPIO.remove_event_detect(CANCEL_PIN)
+
+    GPIO.add_event_detect(CONFIRM_PIN, GPIO.RISING, callback=confirm_record, bouncetime=300)
+    GPIO.add_event_detect(CANCEL_PIN, GPIO.RISING, callback=cancel_record, bouncetime=300)
+
+def confirm_record(channel):
     url = SERVER_HOST + SERVER_ROUTE
     params = {
         'grams': grams,
-        'minutes': minutes
+        'minutes': elapsed
     }
     
-    r = requests.put(url, json=params)
-    status = r.status_code
-    print(status)
+    print(f'sending... {url}')
+    print(f'data: {params}')
+    #r = requests.put(url, json=params)
+    #status = r.status_code
+    #print(status)
     
     # TODO log status and message?
-    return status
+
+    setup_default_button_actions()
+
+    #return status
+
+def cancel_record(channel):
+    print('canceling send...')
+    setup_default_button_actions()
+
+def tare_shutdown(channel):
+    print('cancel pressed')
+    if GPIO.input(channel) == GPIO.LOW:
+        global cancel_pressed_start
+        cancel_pressed_start = time.time()
+    else:
+        cancel_duration = time.time() - cancel_pressed_start
+        if cancel_duration >= LONG_PRESS_DURATION:
+            power_off()
+        else:
+            tare()
 
 def tare():
+    print('taring...')
     hx.reset()
     hx.tare()
-    return time.time()
+
+    global start
+    start = time.time()
 
 def weigh():
     val = hx.get_weight(SCALE_PIN)
@@ -67,6 +105,7 @@ def weigh():
     return val
 
 def power_off():
+    print('powering off...')
     # clean_and_exit, then shutdown
     pass
 
@@ -81,49 +120,38 @@ def clean_and_exit():
     sys.exit()
 
 ### Begin program ###
+GPIO.cleanup()
+
 hx = HX711(SCALE_PIN, 6)
 hx.set_reading_format('MSB', 'MSB')
 hx.set_reference_unit(CALIBRATION_FACTOR)
 
 GPIO.setmode(GPIO.BCM)
 # Confirm Button handles Send/OK
-GPIO.setup(CONFIRM_PIN, GPIO.IN)
+GPIO.setup(CONFIRM_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 # Cancel Button handles Tare/Cancel/Power Off
-GPIO.setup(CANCEL_PIN, GPIO.IN)
+GPIO.setup(CANCEL_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-start = tare()
+setup_default_button_actions()
+
+tare()
 print('Tare done! Add weight now...')
 
 lcd = LCD(PI_REV, I2C_ADDR, BACKLIGHT)
 lcd.message('Ready!', 1)
 time.sleep(1)
 
-cancel_pressed = False
-cancel_pressed_start = 0
-
 while True:
     try:
-        grams = weigh()
-        mliters = round(grams / 1.03)
-        elapsed = time.time() - start
-        elapsed = math.floor(elapsed / 60)
-        lcd.message(f'Pump time: {elapsed: >2}min', 1)
-        lcd.message(f'{grams: >7}g {mliters: >5}ml', 2)
-        
-        confirm_btn = GPIO.input(CONFIRM_PIN)
-        cancel_btn = GPIO.input(CANCEL_PIN)
-        #if confirm_btn == GPIO.LOW:
-        #    confirm_record(grams, elapsed)
-        #elif cancel_btn == GPIO.LOW:
-        #    if not cancel_pressed:
-        #        cancel_pressed_start = time.time()
-        #    cancel_pressed = True
-        #elif cancel_pressed:
-        #    cancel_pressed = False
-        #    if time.time() - cancel_pressed_start >= 3:
-        #        power_off()
-        #    else:
-        #        start = tare()
+        if confirming:
+            lcd.message('Submit pump Y/N?', 1)
+            lcd.message(f'{grams: >7}g {elapsed: >4}min', 2)
+        else:
+            grams = weigh()
+            mliters = round(grams / 1.03)
+            elapsed = math.floor((time.time() - start) / 60)
+            lcd.message(f'Pump time: {elapsed: >2}min', 1)
+            lcd.message(f'{grams: >7}g {mliters: >5}ml', 2)
         
         time.sleep(0.1)
 
