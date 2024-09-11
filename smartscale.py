@@ -4,11 +4,11 @@ import sys
 import math
 import requests
 import time
-import RPi.GPIO as GPIO
 
 sys.path.append('./LCD-1602-I2C')
 sys.path.append('./hx711py')
 
+from RPi import GPIO
 from LCD import LCD
 from hx711 import HX711
 
