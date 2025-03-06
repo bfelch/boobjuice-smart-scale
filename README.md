@@ -8,8 +8,9 @@ Application is still undergoing changes and will not yet work as expected
 1. BoobJuice WebApp - check that out [here](https://github.com/bfelch/boobjuice-web-app).
 2. Raspberry Pi - I used an RPi4. Any should work, but some config steps may vary.
 3. Load Cell & HX711 AD Amplifier
-4. 2x Push Buttons
-5. Keyboard and Monitor - Only needed to complete setup, not part of final device.
+4. LCD1602 Display Module & LCD1602 I2C Serial Interface
+5. 2x Push Buttons
+6. Keyboard and Monitor - Only needed to complete setup, not part of final device.
 
 ## Setup
 ### Raspberry Pi Config
@@ -31,7 +32,34 @@ Application is still undergoing changes and will not yet work as expected
 
 ### Raspberry Pi Wiring
 
-- TODO: Add wiring diagrams and written instructions
+Refer to the images below to assist with wiring. Some of the pins can be changed in config.ini or swapped for preference, this is what worked for me.
+
+1. Raspberry Pi -> HX711 Amplifier
+	- 5V (4) > VCC
+	- GND (9) > GND
+	- GPIO5 (29) > DT
+	- GPIO6 (31) > SCK
+2. HX711 Amplifier -> Load Cell
+	- E+ > Red
+	- E- > Black
+	- A- > White
+	- A+ > Green
+3. Raspberry Pi -> LCD1602 I2C Serial Interface
+	- 5V (2) > VCC
+	- GPIO2 (3) > SDA
+	- GPIO3 (5) > SCL
+	- GND (6) > GND
+4. LCD1602 I2C Serial Interface -> LCD1602 Display Module
+	- The pins on each should line up, just make sure the orientation is correct
+	- I left the backlight pins in, the display was too hard to see without that
+	- If the display doesn't seem to show anything while powered on, try adjusting the contrast
+5. Raspberry Pi -> Buttons (I'm not sure how to label the button pins, check the images for clues)
+	- GND (14) > Both Buttons
+	- GPIO23 (16) -> Tare/Cancel/PowerOff Button
+	- GPIO24 (18) -> Send/Ok Button
+
+![wiring diagram](/.github/images/wiring%20diagram.png?raw=true "Wiring Diagram")
+![pinout](/.github/images/pinout.png?raw=true "Pinout")
 
 ### Smart Scale Application
 
