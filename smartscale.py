@@ -34,20 +34,22 @@ LONG_PRESS_DURATION = config['settings'].getint('long_press_duration')
 def setup_default_button_actions():
     GPIO.remove_event_detect(CONFIRM_PIN)
     GPIO.remove_event_detect(CANCEL_PIN)
-
+    
     GPIO.add_event_detect(CONFIRM_PIN, GPIO.RISING, callback=record, bouncetime=300)
     GPIO.add_event_detect(CANCEL_PIN, GPIO.BOTH, callback=tare_shutdown, bouncetime=100)
-
+    
     global confirming
     confirming = False
+    global running
+    running = True
 
 def record(channel):
     global confirming
     confirming = True
-
+    
     GPIO.remove_event_detect(CONFIRM_PIN)
     GPIO.remove_event_detect(CANCEL_PIN)
-
+    
     GPIO.add_event_detect(CONFIRM_PIN, GPIO.RISING, callback=confirm_record, bouncetime=300)
     GPIO.add_event_detect(CANCEL_PIN, GPIO.RISING, callback=cancel_record, bouncetime=300)
 
@@ -65,9 +67,9 @@ def confirm_record(channel):
     #print(status)
     
     # TODO log status and message?
-
+    
     setup_default_button_actions()
-
+    
     #return status
 
 def cancel_record(channel):
@@ -90,7 +92,7 @@ def tare():
     print('taring...')
     hx.reset()
     hx.tare()
-
+    
     global start
     start = time.time()
 
@@ -99,25 +101,31 @@ def weigh():
     val = int(val)
     print(val)
     
-    hx.power_down()
-    hx.power_up()
-    
     return val
 
 def power_off():
-    print('powering off...')
-    # clean_and_exit, then shutdown
-    pass
+    global running
+    running = False
 
-def clean_and_exit():
+def clean_and_exit(shutdown=False):
+    message = 'Bye!'
+    if shutdown:
+        message = 'Shutting down...'
+    
     lcd.clear()
-    lcd.message('Bye!', 1)
+    lcd.message(message, 1)
     time.sleep(1)
     
-    print('Bye!')
+    print(message)
+    lcd.LCD_BACKLIGHT = 0x00
     lcd.clear()
+    
     GPIO.cleanup()
-    sys.exit()
+    
+    if shutdown:
+        os.system('sudo poweroff')
+    else:
+        sys.exit()
 
 ### Begin program ###
 GPIO.cleanup()
@@ -141,7 +149,7 @@ lcd = LCD(PI_REV, I2C_ADDR, BACKLIGHT)
 lcd.message('Ready!', 1)
 time.sleep(1)
 
-while True:
+while running:
     try:
         if confirming:
             lcd.message('Submit pump Y/N?', 1)
@@ -158,3 +166,4 @@ while True:
     except (KeyboardInterrupt, SystemExit):
         clean_and_exit()
 
+clean_and_exit(True)
