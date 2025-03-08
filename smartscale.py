@@ -30,6 +30,7 @@ I2C_ADDR = int(config['display'].get('i2c_addr'), 16)
 BACKLIGHT = config['display'].getboolean('backlight')
 
 LONG_PRESS_DURATION = config['settings'].getint('long_press_duration')
+TARGET_DENSITY = float(config['settings'].get('target_density'))
 
 def setup_default_button_actions():
     GPIO.remove_event_detect(CONFIRM_PIN)
@@ -42,6 +43,10 @@ def setup_default_button_actions():
     confirming = False
     global running
     running = True
+    global sending
+    sending = False
+    global sendStatus
+    sendStatus = ''
 
 def record(channel):
     global confirming
@@ -56,21 +61,28 @@ def record(channel):
 def confirm_record(channel):
     url = SERVER_HOST + SERVER_ROUTE
     params = {
-        'grams': grams,
-        'minutes': elapsed
+        'mass': grams,
+        'duration': elapsed
     }
+    
+    global sendStatus
+    sendStatus = 'Sending...'
+    
+    global sending
+    sending = True
     
     print(f'sending... {url}')
     print(f'data: {params}')
-    #r = requests.put(url, json=params)
-    #status = r.status_code
-    #print(status)
     
-    # TODO log status and message?
+    r = requests.put(url, json=params)
+    if r.status_code == 200:
+        sendStatus = 'Success!'
+    else:
+        sendStatus = 'Error - ' + str(r.status_code)
+    print(sendStatus)
     
+    time.sleep(4)
     setup_default_button_actions()
-    
-    #return status
 
 def cancel_record(channel):
     print('canceling send...')
@@ -151,12 +163,15 @@ time.sleep(1)
 
 while running:
     try:
-        if confirming:
+        if sending:
+            lcd.message('Status:', 1)
+            lcd.message(sendStatus, 2)
+        elif confirming:
             lcd.message('Submit pump Y/N?', 1)
             lcd.message(f'{grams: >7}g {elapsed: >4}min', 2)
         else:
             grams = weigh()
-            mliters = round(grams / 1.03)
+            mliters = round(grams / TARGET_DENSITY)
             elapsed = math.floor((time.time() - start) / 60)
             lcd.message(f'Pump time: {elapsed: >2}min', 1)
             lcd.message(f'{grams: >7}g {mliters: >5}ml', 2)
