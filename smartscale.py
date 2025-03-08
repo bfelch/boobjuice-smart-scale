@@ -4,7 +4,9 @@ import sys
 import math
 import requests
 import time
+import smbus2
 
+sys.modules['smbus'] = smbus2
 sys.path.append('./LCD-1602-I2C')
 sys.path.append('./hx711py')
 
