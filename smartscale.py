@@ -163,6 +163,8 @@ lcd = LCD(PI_REV, I2C_ADDR, BACKLIGHT)
 lcd.message('Ready!', 1)
 time.sleep(1)
 
+grams = 0
+
 while running:
     try:
         if sending:
