@@ -1,8 +1,3 @@
-# BoobJuice Smart Scale
-## 🛑 **THIS APPLICATION IS NOT YET COMPLETE, PLEASE CHECK BACK LATER** 🛑
-
-Application is still undergoing changes and will not yet work as expected
-
 ## ⚠️ Requirements ⚠️
 
 1. BoobJuice WebApp - check that out [here](https://github.com/bfelch/boobjuice-web-app).
@@ -13,23 +8,6 @@ Application is still undergoing changes and will not yet work as expected
 6. Keyboard and Monitor - Only needed to complete setup, not part of final device.
 
 ## Setup
-### Raspberry Pi Config
-
-1. Use Raspberry Pi Imager to flash a microSD card with your OS of choice (I used Raspberry Pi OS Lite)
-	- Leave user password blank as you won't have a way to enter it during normal use
-	- Wifi SSID and password can be set during this step as well instead of the next step
-2. Insert microSD card into Raspberry Pi and power it on
-	- Once the Raspberry Pi has finished booting and you have access to the terminal, you can continue to the next steps
-3. Type `sudo raspi-config` and hit enter
-4. Select `system options > wireless LAN`
-	- Skip this step if completed earlier
-5. Enter your wifi SSID and password
-6. Return to the Config main screen
-7. Select `interface options > i2c`
-8. Choose to enable i2c
-9. Return to the Config main screen
-10. Select `finish`
-
 ### Raspberry Pi Wiring
 
 Refer to the images below to assist with wiring. Some of the pins can be changed in config.ini or swapped for preference, this is what worked for me.
@@ -61,13 +39,50 @@ Refer to the images below to assist with wiring. Some of the pins can be changed
 ![wiring diagram](/.github/images/wiring%20diagram.png?raw=true "Wiring Diagram")
 ![pinout](/.github/images/pinout.png?raw=true "Pinout")
 
+### Raspberry Pi Config
+
+1. Use Raspberry Pi Imager to flash a microSD card with your OS of choice (I used Raspberry Pi OS Lite)
+	- Username and password can be set during this step or during first boot, password will not be needed after completing setup
+	- Wifi SSID and password can be set during this step
+2. Insert microSD card into Raspberry Pi and power it on
+	- Enter username and password when prompted
+	- Once the Raspberry Pi has finished booting and you have access to the terminal, you can continue to the next steps
+3. Type `sudo raspi-config` and hit enter
+4. Connect to wifi
+	1. Skip these steps if completed earlier
+	2. Select `system options > wireless LAN`
+	3. Enter your wifi SSID and password
+	4. Return to the Config main screen
+5. Enable I2C
+	1. Select `interface options > i2c`
+	2. Choose to enable i2c
+	3. Return to the Config main screen
+6. Enable autologin
+	1. Select `system options > boot/auto login > console autologin`
+	2. Return to the Config main screen
+7. Select `finish`
+8. Reboot if asked
+
 ### Smart Scale Application
 
-- TODO: apt-get install git
-- TODO: clone repo
-- TODO: set service host
-- TODO: run setup.sh
-- TODO: reboot
+1. Install git with `sudo apt-get install git`
+	1. Enter `y` when asked to continue
+2. Clone smart scale repo with `git clone https://github.com/bfelch/boobjuice-smart-scale`
+3. Update config file
+	1. Open config.ini with `sudo nano boobjuice-smart-scale/config.ini`
+	2. Set `host` value to point at your web app container
+	3. Save with `ctrl+x` and `y`
+4. Run setup.sh with `bash boobjuice-smart-scale/setup.sh`
+8. Calibrate the scale
+	1. Start the program with `bash boobjuice-smart-scale/startup.sh`
+	2. Place an item of known weight on the scale
+	3. Calculate `new_factor = displayed_value / known_weight_in_grams`
+	4. Stop smartscale.py with `ctrl+c`
+ 	5. Open config.ini with `sudo nano boobjuice-smart-scale/config.ini`
+  	6. Set `calibration_factor = {new_factor}`
+	7. Save with `ctrl+x` and `y`
+9. Reboot with `shutdown -r now`
+10. Your scale is all set! You can power down by long pressing the Tare/Cancel button
 
 ## Usage
 
